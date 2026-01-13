@@ -60,3 +60,4 @@ L'application sera accessible sur http://localhost:3000
 - Métriques de performance
 - Dashboard basique
 
+# Test CI/CD Pipeline - Tue Jan 13 15:06:42 CET 2026
