@@ -1,0 +1,14 @@
+# Configuration pour utiliser Supabase au lieu de la base de données locale
+# Utilisation: docker compose -f docker-compose.yml -f docker-compose.supabase.yml up -d
+
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      # Remplacez [YOUR-PROJECT-REF] par votre identifiant Supabase
+      # Le $ dans le mot de passe doit être encodé en %24
+      DATABASE_URL: postgresql://postgres:multidrive123%24@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres
+    # Retirer la dépendance vers la DB locale
+    depends_on: []
+
