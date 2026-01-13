@@ -133,6 +133,33 @@ def get_garage(garage_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Garage not found")
     return garage
 
+@app.put("/garages/{garage_id}", response_model=GarageResponse)
+def update_garage(garage_id: int, garage: GarageCreate, db: Session = Depends(get_db)):
+    db_garage = db.query(Garage).filter(Garage.id == garage_id).first()
+    if not db_garage:
+        raise HTTPException(status_code=404, detail="Garage not found")
+    
+    # Update garage fields
+    db_garage.name = garage.name
+    db_garage.address = garage.address
+    
+    db.commit()
+    db.refresh(db_garage)
+    return db_garage
+
+@app.delete("/garages/{garage_id}")
+def delete_garage(garage_id: int, db: Session = Depends(get_db)):
+    garage = db.query(Garage).filter(Garage.id == garage_id).first()
+    if not garage:
+        raise HTTPException(status_code=404, detail="Garage not found")
+    
+    # Delete all vehicles in this garage first
+    db.query(Vehicle).filter(Vehicle.garage_id == garage_id).delete()
+    
+    db.delete(garage)
+    db.commit()
+    return {"message": "Garage deleted"}
+
 @app.get("/vehicles", response_model=List[VehicleResponse])
 def get_vehicles(db: Session = Depends(get_db)):
     return db.query(Vehicle).all()
@@ -146,6 +173,25 @@ def create_vehicle(vehicle: VehicleCreate, db: Session = Depends(get_db)):
     
     db_vehicle = Vehicle(**vehicle.dict())
     db.add(db_vehicle)
+    db.commit()
+    db.refresh(db_vehicle)
+    return db_vehicle
+
+@app.put("/vehicles/{vehicle_id}", response_model=VehicleResponse)
+def update_vehicle(vehicle_id: int, vehicle: VehicleCreate, db: Session = Depends(get_db)):
+    db_vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    if not db_vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    # Check if garage exists
+    garage = db.query(Garage).filter(Garage.id == vehicle.garage_id).first()
+    if not garage:
+        raise HTTPException(status_code=404, detail="Garage not found")
+    
+    # Update vehicle fields
+    for key, value in vehicle.dict().items():
+        setattr(db_vehicle, key, value)
+    
     db.commit()
     db.refresh(db_vehicle)
     return db_vehicle

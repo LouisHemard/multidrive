@@ -9,6 +9,7 @@ function App() {
   const [vehicles, setVehicles] = useState([]);
   const [selectedGarage, setSelectedGarage] = useState(null);
   const [showVehicleForm, setShowVehicleForm] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState(null);
   const [vehicleForm, setVehicleForm] = useState({
     brand: '',
     model: '',
@@ -70,6 +71,58 @@ function App() {
     }
   };
 
+  const handleEditVehicle = (vehicle) => {
+    setEditingVehicle(vehicle.id);
+    setVehicleForm({
+      brand: vehicle.brand,
+      model: vehicle.model,
+      year: vehicle.year,
+      license_plate: vehicle.license_plate,
+      garage_id: vehicle.garage_id
+    });
+    setShowVehicleForm(true);
+  };
+
+  const handleUpdateVehicle = async (e) => {
+    e.preventDefault();
+    if (!selectedGarage) {
+      alert('Sélectionnez un garage');
+      return;
+    }
+
+    try {
+      await axios.put(`${API_URL}/vehicles/${editingVehicle}`, {
+        ...vehicleForm,
+        garage_id: selectedGarage
+      });
+      setVehicleForm({
+        brand: '',
+        model: '',
+        year: new Date().getFullYear(),
+        license_plate: '',
+        garage_id: null
+      });
+      setEditingVehicle(null);
+      setShowVehicleForm(false);
+      fetchVehicles();
+    } catch (error) {
+      console.error('Error updating vehicle:', error);
+      alert('Erreur lors de la modification du véhicule');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingVehicle(null);
+    setVehicleForm({
+      brand: '',
+      model: '',
+      year: new Date().getFullYear(),
+      license_plate: '',
+      garage_id: null
+    });
+    setShowVehicleForm(false);
+  };
+
   const handleDeleteVehicle = async (id) => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce véhicule?')) {
       return;
@@ -128,8 +181,8 @@ function App() {
 
               {showVehicleForm && (
                 <div className="vehicle-form">
-                  <h3>Nouveau véhicule</h3>
-                  <form onSubmit={handleAddVehicle}>
+                  <h3>{editingVehicle ? 'Modifier le véhicule' : 'Nouveau véhicule'}</h3>
+                  <form onSubmit={editingVehicle ? handleUpdateVehicle : handleAddVehicle}>
                     <div className="form-row">
                       <div className="form-group">
                         <label>Marque</label>
@@ -170,7 +223,14 @@ function App() {
                         />
                       </div>
                     </div>
-                    <button type="submit" className="btn-submit">Ajouter</button>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      <button type="submit" className="btn-submit">
+                        {editingVehicle ? 'Modifier' : 'Ajouter'}
+                      </button>
+                      <button type="button" className="btn-cancel" onClick={cancelEdit}>
+                        Annuler
+                      </button>
+                    </div>
                   </form>
                 </div>
               )}
@@ -191,12 +251,20 @@ function App() {
                           <span>Plaque: {vehicle.license_plate}</span>
                         </div>
                       </div>
-                      <button
-                        className="btn-delete"
-                        onClick={() => handleDeleteVehicle(vehicle.id)}
-                      >
-                        Supprimer
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          className="btn-edit"
+                          onClick={() => handleEditVehicle(vehicle)}
+                        >
+                          Modifier
+                        </button>
+                        <button
+                          className="btn-delete"
+                          onClick={() => handleDeleteVehicle(vehicle.id)}
+                        >
+                          Supprimer
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
