@@ -9,6 +9,8 @@ function App() {
   const [selectedGarage, setSelectedGarage] = useState(null);
   const [showVehicleForm, setShowVehicleForm] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
+  const [movingVehicle, setMovingVehicle] = useState(null);
+  const [targetGarageId, setTargetGarageId] = useState(null);
   const [vehicleForm, setVehicleForm] = useState({
     brand: '',
     model: '',
@@ -136,6 +138,46 @@ function App() {
     }
   };
 
+  const handleMoveVehicle = (vehicle) => {
+    setMovingVehicle(vehicle);
+    setTargetGarageId(null);
+  };
+
+  const confirmMoveVehicle = async () => {
+    if (!targetGarageId) {
+      alert('Veuillez sélectionner un garage de destination');
+      return;
+    }
+
+    if (targetGarageId === movingVehicle.garage_id) {
+      alert('Le véhicule est déjà dans ce garage');
+      setMovingVehicle(null);
+      return;
+    }
+
+    try {
+      await axios.put(`${API_URL}/vehicles/${movingVehicle.id}`, {
+        brand: movingVehicle.brand,
+        model: movingVehicle.model,
+        year: movingVehicle.year,
+        license_plate: movingVehicle.license_plate,
+        garage_id: targetGarageId
+      });
+      setMovingVehicle(null);
+      setTargetGarageId(null);
+      fetchVehicles();
+      // Si le véhicule a été déplacé vers un autre garage, on reste sur le garage actuel
+    } catch (error) {
+      console.error('Error moving vehicle:', error);
+      alert('Erreur lors du déplacement du véhicule');
+    }
+  };
+
+  const cancelMoveVehicle = () => {
+    setMovingVehicle(null);
+    setTargetGarageId(null);
+  };
+
   const filteredVehicles = vehicles.filter(v => v.garage_id === selectedGarage);
   const currentGarage = garages.find(g => g.id === selectedGarage);
 
@@ -252,6 +294,12 @@ function App() {
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
+                          className="btn-move"
+                          onClick={() => handleMoveVehicle(vehicle)}
+                        >
+                          Déplacer
+                        </button>
+                        <button
                           className="btn-edit"
                           onClick={() => handleEditVehicle(vehicle)}
                         >
@@ -272,6 +320,50 @@ function App() {
           )}
         </div>
       </div>
+
+      {movingVehicle && (
+        <div className="modal-overlay" onClick={cancelMoveVehicle}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Déplacer le véhicule</h3>
+            <p>
+              <strong>{movingVehicle.brand} {movingVehicle.model}</strong>
+              <br />
+              Plaque: {movingVehicle.license_plate}
+            </p>
+            <div className="form-group">
+              <label>Sélectionnez le garage de destination :</label>
+              <select
+                value={targetGarageId || ''}
+                onChange={(e) => setTargetGarageId(parseInt(e.target.value))}
+                className="form-select"
+              >
+                <option value="">-- Sélectionner un garage --</option>
+                {garages.map(garage => (
+                  <option key={garage.id} value={garage.id}>
+                    {garage.name} - {garage.address}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn-submit"
+                onClick={confirmMoveVehicle}
+              >
+                Déplacer
+              </button>
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={cancelMoveVehicle}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
