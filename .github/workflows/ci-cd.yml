@@ -172,4 +172,4 @@ jobs:
             echo "Build: Backend and Frontend"
             echo "Deploy: Backend to Cloud Run"
           fi
-          echo "Frontend: Build artifacts available (deploy via Railway)"
+          echo "Frontend: Build artifacts available (deploy via Vercel)"
