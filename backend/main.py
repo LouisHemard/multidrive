@@ -10,11 +10,14 @@ import os
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/vehicledb")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+_connect_args = {}
+if "supabase" in DATABASE_URL.lower() or "pooler" in DATABASE_URL.lower():
+    _connect_args["sslmode"] = "require"
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, connect_args=_connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Database Models
 class Garage(Base):
     __tablename__ = "garages"
     id = Column(Integer, primary_key=True, index=True)
@@ -37,31 +40,28 @@ def init_db():
     
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    init_db()
-    # Seed initial data
-    db = SessionLocal()
     try:
-        if db.query(Garage).count() == 0:
-            garages = [
-                Garage(name="Garage Central", address="123 Rue Principale"),
-                Garage(name="Garage Auto", address="456 Avenue Auto"),
-            ]
-            db.add_all(garages)
-            db.commit()
-            print("✅ Initial data seeded successfully")
+        init_db()
+        db = SessionLocal()
+        try:
+            if db.query(Garage).count() == 0:
+                garages = [
+                    Garage(name="Garage Central", address="123 Rue Principale"),
+                    Garage(name="Garage Auto", address="456 Avenue Auto"),
+                ]
+                db.add_all(garages)
+                db.commit()
+                print("✅ Initial data seeded successfully")
+        except Exception as e:
+            print(f"⚠️ Error seeding data: {e}")
+        finally:
+            db.close()
     except Exception as e:
-        print(f"⚠️ Error seeding data: {e}")
-    finally:
-        db.close()
-    
+        print(f"⚠️ DB init/seed failed (routes will 500 until DB is ok): {e}")
     yield
-    
-    # Shutdown (nothing to do for now)
 
 app = FastAPI(title="MultiDrive API", lifespan=lifespan)
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -70,7 +70,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic Models
 class GarageCreate(BaseModel):
     name: str
     address: str
@@ -101,7 +100,6 @@ class VehicleResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Database Dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -109,10 +107,14 @@ def get_db():
     finally:
         db.close()
 
-# Routes
 @app.get("/")
 def read_root():
     return {"message": "MultiDrive API"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.get("/garages", response_model=List[GarageResponse])
 def get_garages(db: Session = Depends(get_db)):
@@ -139,7 +141,6 @@ def update_garage(garage_id: int, garage: GarageCreate, db: Session = Depends(ge
     if not db_garage:
         raise HTTPException(status_code=404, detail="Garage not found")
     
-    # Update garage fields
     db_garage.name = garage.name
     db_garage.address = garage.address
     
@@ -153,7 +154,6 @@ def delete_garage(garage_id: int, db: Session = Depends(get_db)):
     if not garage:
         raise HTTPException(status_code=404, detail="Garage not found")
     
-    # Delete all vehicles in this garage first
     db.query(Vehicle).filter(Vehicle.garage_id == garage_id).delete()
     
     db.delete(garage)
@@ -166,7 +166,6 @@ def get_vehicles(db: Session = Depends(get_db)):
 
 @app.post("/vehicles", response_model=VehicleResponse)
 def create_vehicle(vehicle: VehicleCreate, db: Session = Depends(get_db)):
-    # Check if garage exists
     garage = db.query(Garage).filter(Garage.id == vehicle.garage_id).first()
     if not garage:
         raise HTTPException(status_code=404, detail="Garage not found")
@@ -183,12 +182,10 @@ def update_vehicle(vehicle_id: int, vehicle: VehicleCreate, db: Session = Depend
     if not db_vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
     
-    # Check if garage exists
     garage = db.query(Garage).filter(Garage.id == vehicle.garage_id).first()
     if not garage:
         raise HTTPException(status_code=404, detail="Garage not found")
     
-    # Update vehicle fields
     for key, value in vehicle.dict().items():
         setattr(db_vehicle, key, value)
     

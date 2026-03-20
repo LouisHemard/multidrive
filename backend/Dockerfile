@@ -7,7 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Cloud Run utilise le port fourni par la variable d'environnement PORT (par défaut 8080)
 ENV PORT=8080
 EXPOSE 8080
 

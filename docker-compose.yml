@@ -5,8 +5,6 @@ services:
       POSTGRES_DB: vehicledb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -15,18 +13,21 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "8000:8080"
     environment:
-      # Connection Supabase Transaction Pooler (IPv4 compatible)
-      DATABASE_URL: "postgresql://postgres.ozvjwsvbimjrwjycyxbr:mZjECcHQUJ3NdNZx@aws-1-eu-west-1.pooler.supabase.com:6543/postgres"
-      CORS_ORIGINS: http://localhost:3000
-    # Dépendance vers db locale supprimée car on utilise Supabase
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/vehicledb}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3001}
+    depends_on:
+      - db
     restart: unless-stopped
     networks:
       - app-network
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8000}
     ports:
       - "3001:3000"
     environment:

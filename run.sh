@@ -3,7 +3,6 @@
 echo "🚀 Démarrage de l'application de gestion de véhicules..."
 echo ""
 
-# Vérifier que Docker est installé
 if ! command -v docker &> /dev/null; then
     echo "❌ Docker n'est pas installé. Veuillez l'installer d'abord."
     exit 1

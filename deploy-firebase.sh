@@ -1,26 +1,20 @@
 #!/bin/bash
 
-# Script de déploiement Firebase automatique
-# Usage: ./deploy-firebase.sh
-
-set -e  # Arrêter en cas d'erreur
+set -e
 
 echo "🔥 Déploiement Firebase - Gestion de Véhicules"
 echo ""
 
-# Couleurs
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Vérifier que Firebase CLI est installé
 if ! command -v firebase &> /dev/null; then
     echo -e "${YELLOW}⚠️  Firebase CLI non trouvé${NC}"
     echo "Installation..."
     npm install -g firebase-tools
 fi
 
-# Vérifier que gcloud est installé
 if ! command -v gcloud &> /dev/null; then
     echo -e "${YELLOW}⚠️  Google Cloud SDK non trouvé${NC}"
     echo "Installation..."
@@ -30,10 +24,8 @@ fi
 echo -e "${GREEN}✅ Outils installés${NC}"
 echo ""
 
-# Se placer dans le dossier frontend
 cd frontend
 
-# Vérifier si Firebase est initialisé
 if [ ! -f ".firebaserc" ]; then
     echo -e "${YELLOW}⚠️  Firebase non initialisé${NC}"
     echo "Lancement de firebase init..."

@@ -18,14 +18,16 @@ function App() {
     license_plate: '',
     garage_id: null
   });
+  const [apiError, setApiError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchGarages();
     fetchVehicles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchGarages = async () => {
+    setApiError(null);
     try {
       const response = await axios.get(`${API_URL}/garages`);
       setGarages(response.data);
@@ -34,6 +36,9 @@ function App() {
       }
     } catch (error) {
       console.error('Error fetching garages:', error);
+      setApiError('Impossible de charger les données. L\'API backend est inaccessible.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,6 +48,7 @@ function App() {
       setVehicles(response.data);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
+      if (!apiError) setApiError('Impossible de charger les données. L\'API backend est inaccessible.');
     }
   };
 
@@ -167,7 +173,6 @@ function App() {
       setMovingVehicle(null);
       setTargetGarageId(null);
       fetchVehicles();
-      // Si le véhicule a été déplacé vers un autre garage, on reste sur le garage actuel
     } catch (error) {
       console.error('Error moving vehicle:', error);
       alert('Erreur lors du déplacement du véhicule');
@@ -209,7 +214,18 @@ function App() {
         </div>
 
         <div className="main-content">
-          {currentGarage && (
+          {apiError && (
+            <div className="empty-state" style={{ padding: '2rem', textAlign: 'center', color: '#c00' }}>
+              <p><strong>{apiError}</strong></p>
+              <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                Vérifiez que l&apos;URL de l&apos;API est correcte sur Vercel (REACT_APP_API_URL) et que le backend Cloud Run fonctionne.
+              </p>
+            </div>
+          )}
+          {!apiError && loading && garages.length === 0 && (
+            <div className="empty-state"><p>Chargement...</p></div>
+          )}
+          {!apiError && !loading && currentGarage && (
             <>
               <div className="content-header">
                 <h2>Véhicules - {currentGarage.name}</h2>
@@ -318,6 +334,9 @@ function App() {
                 )}
               </div>
             </>
+          )}
+          {!apiError && !loading && !currentGarage && garages.length === 0 && (
+            <div className="empty-state"><p>Aucun garage. Ajoutez-en un via l&apos;API.</p></div>
           )}
         </div>
       </div>

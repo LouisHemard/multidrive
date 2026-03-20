@@ -12,7 +12,6 @@ env:
   BACKEND_SERVICE: multidrive-backend
 
 jobs:
-  # Tests Backend
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
@@ -37,7 +36,6 @@ jobs:
         run: |
           python -c "from main import app; print('✅ Backend imports successfully')"
 
-  # Tests Frontend
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
@@ -61,7 +59,6 @@ jobs:
           REACT_APP_API_URL: https://multidrive-backend-565974867635.europe-west1.run.app
         run: npm run build
 
-  # Build Backend
   build-backend:
     name: Build Backend
     runs-on: ubuntu-latest
@@ -93,7 +90,6 @@ jobs:
           docker push gcr.io/${{ env.GCP_PROJECT_ID }}/multidrive-backend:${{ github.sha }}
           docker push gcr.io/${{ env.GCP_PROJECT_ID }}/multidrive-backend:latest
 
-  # Deploy Backend to Cloud Run
   deploy-backend:
     name: Deploy Backend
     runs-on: ubuntu-latest
@@ -123,7 +119,6 @@ jobs:
             --allow-unauthenticated \
             --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }},CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}"
 
-  # Build Frontend
   build-frontend:
     name: Build Frontend
     runs-on: ubuntu-latest
@@ -156,7 +151,6 @@ jobs:
           path: frontend/build
           retention-days: 7
 
-  # Summary
   summary:
     name: Pipeline Summary
     runs-on: ubuntu-latest
