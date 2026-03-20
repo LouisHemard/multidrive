@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './App.css';
 import { API_URL } from './config';
@@ -21,12 +21,7 @@ function App() {
   const [apiError, setApiError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchGarages();
-    fetchVehicles();
-  }, []);
-
-  const fetchGarages = async () => {
+  const fetchGarages = useCallback(async () => {
     setApiError(null);
     try {
       const response = await axios.get(`${API_URL}/garages`);
@@ -40,9 +35,9 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedGarage]);
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/vehicles`);
       setVehicles(response.data);
@@ -50,7 +45,12 @@ function App() {
       console.error('Error fetching vehicles:', error);
       if (!apiError) setApiError('Impossible de charger les données. L\'API backend est inaccessible.');
     }
-  };
+  }, [apiError]);
+
+  useEffect(() => {
+    fetchGarages();
+    fetchVehicles();
+  }, [fetchGarages, fetchVehicles]);
 
   const handleAddVehicle = async (e) => {
     e.preventDefault();
